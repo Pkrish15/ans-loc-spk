@@ -1,0 +1,6 @@
+- name: spark master setup
+  hosts: localhost
+  roles:
+
+    - role: spark
+

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+export JAVA_TOOL_OPTS=-Djava.net.preferIPv4Stack=true
+
+export HADOOP_CONF_DIR=${HADOOP_CONF_DIR:-/etc/hadoop/conf}
+
+SPARK_MASTER_IP=192.168.1.100
+SPARK_MASTER_PORT=7077
+SPARK_WORKER_PORT=8081 #{{ spark.worker_work_port }}
+SPARK_WORKER_WEBUI_PORT=8080 #Avoid conflict with kafka ports
+env_extras=master
+#{% for key, value in spark.env_extras.items() | sort %}
+#export {{ key }}="{{ value }}"
+#{% endfor %}

@@ -1,0 +1,77 @@
+
+- name: set spark distribution fact
+  set_fact: spark_path=spark-{{ spark.version }}-bin-hadoop{{ spark.hadoop_version }}
+
+- name: check spark downloaded
+  local_action: >
+    command test -f {{ spark.temp_dir }}/{{ spark_path }}.tgz
+  register: spark_downloaded
+  failed_when: spark_downloaded.rc not in [0, 1]
+  changed_when: False
+  run_once: true
+  tags: spark-node
+
+- name: download spark 
+  local_action: get_url url="{{ spark.mirror }}/{{ spark_path }}.tgz" dest="{{ spark.temp_dir }}"
+  when: spark_downloaded.rc == 1
+  run_once: true
+  tags: spark-node
+
+- name: create group
+  group:
+    name: spark
+    state: present
+  become: true
+  tags: spark-node
+
+- name: create user
+  user:
+    name: spark
+    group: spark
+  become: true
+  tags: spark-node
+
+- name: create spark working directory
+  file:
+    path: "{{ spark.working_dir }}"
+    state: directory
+    owner: spark
+    group: spark
+  become: true
+  tags: spark-node
+
+- name: create install directory 
+  file:
+    path: "{{ spark.install_dir }}/{{ spark_path}}"
+    state: directory
+    owner: spark
+    group: spark
+  become: true
+  tags: spark-node
+
+- name: unarchive to the install directory
+  unarchive:
+    src: "{{ spark.temp_dir }}/{{ spark_path }}.tgz"
+    dest: "{{ spark.install_dir }}"
+    owner: spark
+    group: spark
+    creates: "{{ spark.install_dir }}/{{ spark_path }}/RELEASE"
+  become: true
+  tags: spark-node
+
+  #- name: set spark-env.sh
+  # template: src="spark-env-sh.j2" dest="{{spark.install_dir }}/{{spark_path}}/conf/spark-env.sh"
+
+- name: set spark-defaults.conf
+  template: src="spark-defaults-conf.j2" dest="{{ spark.install_dir}}/{{ spark_path}}/conf/spark-defaults.conf"
+
+  ##- name: set slaves
+  ## template: src="slaves.j2" dest="{{ spark.install_dir}}/{{spark_path}}/conf/slaves"
+
+# Environment setup.
+- name: add spark profile to startup
+  template:
+    src: spark-profile.sh.j2
+    dest: /etc/profile.d/spark-profile.sh
+    mode: 0777
+
